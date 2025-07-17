@@ -70,7 +70,12 @@
               if (badgeMatch[1].includes("moderator")) badges += "🛡️ ";
               if (badgeMatch[1].includes("subscriber")) badges += "⭐ ";
             }
-            div.innerHTML = `${badges}<span class="username">${username}:</span> ${message}`;
+
+            // Extract username color from tags
+            const colorMatch = tags.match(/color=([^;]*)/);
+            const nameColor = colorMatch && colorMatch[1] ? colorMatch[1] : "#9147ff"; // fallback color
+
+            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${message}`;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 
