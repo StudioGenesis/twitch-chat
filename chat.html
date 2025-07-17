@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Twitch Chat Overlay</title>
+  <title>Custom Twitch Chat Overlay</title>
   <style>
     html, body {
       height: 100%;
@@ -10,23 +10,48 @@
       background: transparent;
       overflow: hidden;
     }
-    body {
+    #chat {
+      font-family: Arial, sans-serif;
+      font-size: 1.2em;
+      color: white;
       width: 100vw;
       height: 100vh;
-    }
-    iframe {
-      width: 100vw;
-      height: 100vh;
-      border: none;
+      overflow-y: auto;
       background: transparent;
+    }
+    .message {
+      margin: 0.2em 0;
+      text-shadow: 1px 1px 2px #000;
+    }
+    .username {
+      font-weight: bold;
+      color: #9147ff;
     }
   </style>
 </head>
 <body>
-  <!-- Replace 'CHANNEL_NAME' with your Twitch channel name -->
-  <iframe
-    src="https://www.twitch.tv/embed/studiogenesisau/chat?parent=studiogenesis.github.io"
-    allowfullscreen>
-  </iframe>
+  <div id="chat"></div>
+  <script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+  <script>
+    const channel = "studiogenesisau"; // <-- Change to your channel name
+
+    const client = new tmi.Client({
+      channels: [ channel ]
+    });
+
+    client.connect();
+
+    client.on('message', (channel, tags, message, self) => {
+      // Filter out system messages (e.g., gift subs, etc.)
+      if (tags['message-type'] !== 'chat') return;
+
+      const chat = document.getElementById('chat');
+      const div = document.createElement('div');
+      div.className = 'message';
+      div.innerHTML = `<span class="username">${tags['display-name']}:</span> ${message}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    });
+  </script>
 </body>
 </html>
