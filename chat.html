@@ -21,137 +21,160 @@
     // Set font size on chat container
     document.getElementById('chat').style.fontSize = fontSize;
 
-    // Anonymous connection (no login required)
-    const ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+    let ws;
+    let reconnectTimeout = null;
+    const reconnectDelay = 5000; // ms
 
-    ws.onopen = function() {
-      ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
-      ws.send("NICK justinfan" + Math.floor(Math.random() * 100000));
-      ws.send("JOIN #" + channel);
-    };
+    function connectWebSocket() {
+      ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
 
-    let seventvEmotes = {};
-
-    // Fetch 7TV emotes ONCE at page load using emote set ID from config
-    fetch(`https://api.7tv.app/v3/emote-sets/${seventvEmoteSetId}`)
-      .then(res => res.json())
-      .then(set => {
-        if (set.emotes) {
-          set.emotes.forEach(e => {
-            seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
-          });
-          // Build regex: \b(emote1|emote2|emote3)\b
-          const names = Object.keys(seventvEmotes).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-          if (names.length) {
-            seventvEmoteRegex = new RegExp(`\\b(${names.join('|')})\\b`, 'g');
-          }
+      ws.onopen = function() {
+        ws.send("CAP REQ :twitch.tv/tags twitch.tv/commands");
+        ws.send("NICK justinfan" + Math.floor(Math.random() * 100000));
+        ws.send("JOIN #" + channel);
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout);
+          reconnectTimeout = null;
         }
-      })
-      .catch(err => {
-        console.error("Failed to fetch 7TV emotes:", err);
-      });
+        console.log("Connected to Twitch IRC");
+      };
 
-    ws.onmessage = function(event) {
-      const chat = document.getElementById('chat');
-      const lines = event.data.split('\r\n');
-      lines.forEach(function(line) {
-        if (line.includes("PRIVMSG")) {
-          // Parse IRC message
-          const match = line.match(/@([^ ]+) :([^!]+)!.* PRIVMSG #\w+ :(.*)/);
-          if (match) {
-            const tags = match[1];
-            const username = match[2];
-            const message = match[3];
+      ws.onclose = function() {
+        console.warn("WebSocket closed. Attempting to reconnect in 5 seconds...");
+        reconnectTimeout = setTimeout(connectWebSocket, reconnectDelay);
+      };
 
-            // Example: skip messages from Nightbot or StreamElements
-            const botList = ["nightbot", "streamelements", "eva_m1a"];
-            if (botList.includes(username.toLowerCase())) return;
+      ws.onerror = function(err) {
+        console.error("WebSocket error:", err);
+        ws.close();
+      };
 
-            const div = document.createElement('div');
-            div.className = 'message';
+      let seventvEmotes = {};
 
-            const badgeMatch = tags.match(/badges=([^;]*)/);
-            let badges = "";
-            if (badgeMatch && badgeMatch[1]) {
-              const badgeList = badgeMatch[1].split(",");
-              badgeList.forEach(badge => {
-                const [type] = badge.split("/");
-                if (badgeUrls[type]) {
-                  badges += `<img src="${badgeUrls[type]}" alt="${type}" style="height:1em;vertical-align:middle;"> `;
-                }
-              });
+      // Fetch 7TV emotes ONCE at page load using emote set ID from config
+      fetch(`https://api.7tv.app/v3/emote-sets/${seventvEmoteSetId}`)
+        .then(res => res.json())
+        .then(set => {
+          if (set.emotes) {
+            set.emotes.forEach(e => {
+              seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
+            });
+            // Build regex: \b(emote1|emote2|emote3)\b
+            const names = Object.keys(seventvEmotes).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            if (names.length) {
+              seventvEmoteRegex = new RegExp(`\\b(${names.join('|')})\\b`, 'g');
             }
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch 7TV emotes:", err);
+        });
 
-            // Extract username color from tags
-            const colorMatch = tags.match(/color=([^;]*)/);
-            const nameColor = colorMatch && colorMatch[1] ? colorMatch[1] : "#9147ff"; // fallback color
+      ws.onmessage = function(event) {
+        const chat = document.getElementById('chat');
+        const lines = event.data.split('\r\n');
+        lines.forEach(function(line) {
+          if (line.includes("PRIVMSG")) {
+            // Parse IRC message
+            const match = line.match(/@([^ ]+) :([^!]+)!.* PRIVMSG #\w+ :(.*)/);
+            if (match) {
+              const tags = match[1];
+              const username = match[2];
+              const message = match[3];
 
-            // Extract emotes from tags
-            const emotesMatch = tags.match(/emotes=([^;]*)/);
-            let emotes = emotesMatch && emotesMatch[1] ? emotesMatch[1] : "";
+              // Example: skip messages from Nightbot or StreamElements
+              const botList = ["nightbot", "streamelements", "eva_m1a"];
+              if (botList.includes(username.toLowerCase())) return;
 
-            // Replace emote text with images
-            let parsedMessage = message;
-            if (emotes) {
-              // Collect all emote occurrences
-              let emoteReplacements = [];
-              emotes.split('/').forEach(emote => {
-                const [emoteId, positions] = emote.split(':');
-                if (!positions) return;
-                positions.split(',').forEach(pos => {
-                  const [start, end] = pos.split('-').map(Number);
-                  emoteReplacements.push({
-                    start,
-                    end,
-                    id: emoteId
+              const div = document.createElement('div');
+              div.className = 'message';
+
+              const badgeMatch = tags.match(/badges=([^;]*)/);
+              let badges = "";
+              if (badgeMatch && badgeMatch[1]) {
+                const badgeList = badgeMatch[1].split(",");
+                badgeList.forEach(badge => {
+                  const [type] = badge.split("/");
+                  if (badgeUrls[type]) {
+                    badges += `<img src="${badgeUrls[type]}" alt="${type}" style="height:1em;vertical-align:middle;"> `;
+                  }
+                });
+              }
+
+              // Extract username color from tags
+              const colorMatch = tags.match(/color=([^;]*)/);
+              const nameColor = colorMatch && colorMatch[1] ? colorMatch[1] : "#9147ff"; // fallback color
+
+              // Extract emotes from tags
+              const emotesMatch = tags.match(/emotes=([^;]*)/);
+              let emotes = emotesMatch && emotesMatch[1] ? emotesMatch[1] : "";
+
+              // Replace emote text with images
+              let parsedMessage = message;
+              if (emotes) {
+                // Collect all emote occurrences
+                let emoteReplacements = [];
+                emotes.split('/').forEach(emote => {
+                  const [emoteId, positions] = emote.split(':');
+                  if (!positions) return;
+                  positions.split(',').forEach(pos => {
+                    const [start, end] = pos.split('-').map(Number);
+                    emoteReplacements.push({
+                      start,
+                      end,
+                      id: emoteId
+                    });
                   });
                 });
-              });
 
-              // Sort by start position descending to not mess up indices when replacing
-              emoteReplacements.sort((a, b) => b.start - a.start);
+                // Sort by start position descending to not mess up indices when replacing
+                emoteReplacements.sort((a, b) => b.start - a.start);
 
-              // Replace emote text with image tags
-              emoteReplacements.forEach(({start, end, id}) => {
-                const emoteText = parsedMessage.substring(start, end + 1);
-                const emoteImg = `<img src="https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0" alt="${emoteText}" style="height:1em;vertical-align:middle;">`;
-                parsedMessage = parsedMessage.slice(0, start) + emoteImg + parsedMessage.slice(end + 1);
-              });
-            }
+                // Replace emote text with image tags
+                emoteReplacements.forEach(({start, end, id}) => {
+                  const emoteText = parsedMessage.substring(start, end + 1);
+                  const emoteImg = `<img src="https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0" alt="${emoteText}" style="height:1em;vertical-align:middle;">`;
+                  parsedMessage = parsedMessage.slice(0, start) + emoteImg + parsedMessage.slice(end + 1);
+                });
+              }
 
-            // Replace 7TV emotes (simple word match, not perfect for all edge cases)
-            if (seventvEmoteRegex) {
-              parsedMessage = parsedMessage.replace(seventvEmoteRegex, (match) => {
-                const url = seventvEmotes[match];
-                return url
-                  ? `<img src="${url}" alt="${match}" style="height:1em;vertical-align:middle;">`
-                  : match;
-              });
-            }
+              // Replace 7TV emotes (simple word match, not perfect for all edge cases)
+              if (seventvEmoteRegex) {
+                parsedMessage = parsedMessage.replace(seventvEmoteRegex, (match) => {
+                  const url = seventvEmotes[match];
+                  return url
+                    ? `<img src="${url}" alt="${match}" style="height:1em;vertical-align:middle;">`
+                    : match;
+                });
+              }
 
-            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${escapeHTML(username)}:</span> ${parsedMessage}`;
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
+              div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${escapeHTML(username)}:</span> ${parsedMessage}`;
+              chat.appendChild(div);
+              chat.scrollTop = chat.scrollHeight;
 
-            // Limit to last N messages
-            while (chat.children.length > messageLimit) {
-              chat.removeChild(chat.firstChild);
-            }
+              // Limit to last N messages
+              while (chat.children.length > messageLimit) {
+                chat.removeChild(chat.firstChild);
+              }
 
-            // (Optional) Fade out messages after fadeTime ms
-            if (fadeTime > 0) {
-              setTimeout(() => {
-                div.style.transition = "opacity 0.5s";
-                div.style.opacity = 0;
+              // (Optional) Fade out messages after fadeTime ms
+              if (fadeTime > 0) {
                 setTimeout(() => {
-                  if (div.parentNode) div.parentNode.removeChild(div);
-                }, 500);
-              }, fadeTime);
+                  div.style.transition = "opacity 0.5s";
+                  div.style.opacity = 0;
+                  setTimeout(() => {
+                    if (div.parentNode) div.parentNode.removeChild(div);
+                  }, 500);
+                }, fadeTime);
+              }
             }
           }
-        }
-      });
-    };
+        });
+      };
+    }
+
+    // Start the connection
+    connectWebSocket();
 
     function escapeHTML(str) {
       return str.replace(/[&<>"']/g, function(m) {
