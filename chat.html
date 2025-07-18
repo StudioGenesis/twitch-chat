@@ -34,7 +34,15 @@
           set.emotes.forEach(e => {
             seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
           });
+          // Build regex: \b(emote1|emote2|emote3)\b
+          const names = Object.keys(seventvEmotes).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+          if (names.length) {
+            seventvEmoteRegex = new RegExp(`\\b(${names.join('|')})\\b`, 'g');
+          }
         }
+      })
+      .catch(err => {
+        console.error("Failed to fetch 7TV emotes:", err);
       });
 
     ws.onmessage = function(event) {
@@ -106,12 +114,14 @@
             }
 
             // Replace 7TV emotes (simple word match, not perfect for all edge cases)
-            Object.keys(seventvEmotes).forEach(emoteName => {
-              parsedMessage = parsedMessage.replace(
-                new RegExp(`\\b${emoteName}\\b`, 'g'),
-                `<img src="${seventvEmotes[emoteName]}" alt="${emoteName}" style="height:1em;vertical-align:middle;">`
-              );
-            });
+            if (seventvEmoteRegex) {
+              parsedMessage = parsedMessage.replace(seventvEmoteRegex, (match) => {
+                const url = seventvEmotes[match];
+                return url
+                  ? `<img src="${url}" alt="${match}" style="height:1em;vertical-align:middle;">`
+                  : match;
+              });
+            }
 
             div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${parsedMessage}`;
             chat.appendChild(div);
