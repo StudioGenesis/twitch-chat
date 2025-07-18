@@ -11,6 +11,7 @@
   <div id="chat"></div>
   <script>
     // ---- CONFIG ----
+    // Load channel-specific and UI settings from config.js
     const channel = window.chatConfig.channel;
     const badgeUrls = window.chatConfig.badgeUrls;
     const seventvEmoteSetId = window.chatConfig.seventvEmoteSetId;
@@ -19,15 +20,21 @@
     const fadeTime = window.chatConfig.fadeTime || 0;
     // ---- END CONFIG ----
 
+    // Set chat font size
     document.getElementById('chat').style.fontSize = fontSize;
 
+    // WebSocket and reconnect logic
     let ws;
     let reconnectTimeout = null;
     const reconnectDelay = 5000; // ms
 
+    // 7TV emote storage and regex
     let seventvEmotes = {};
     let seventvEmoteRegex = null;
 
+    /**
+     * Escape HTML special characters to prevent XSS.
+     */
     function escapeHTML(str) {
       return str.replace(/[&<>"']/g, function(m) {
         return ({
@@ -40,6 +47,9 @@
       });
     }
 
+    /**
+     * Fetch 7TV emotes for the configured channel and build a regex for fast replacement.
+     */
     function fetch7TVEmotes() {
       return fetch(`https://api.7tv.app/v3/emote-sets/${seventvEmoteSetId}`)
         .then(res => res.json())
@@ -48,6 +58,7 @@
             set.emotes.forEach(e => {
               seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
             });
+            // Build a regex to match any emote name
             const names = Object.keys(seventvEmotes).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
             if (names.length) {
               seventvEmoteRegex = new RegExp(`\\b(${names.join('|')})\\b`, 'g');
@@ -59,6 +70,9 @@
         });
     }
 
+    /**
+     * Render badge images based on IRC tags.
+     */
     function renderBadges(tags) {
       const badgeMatch = tags.match(/badges=([^;]*)/);
       let badges = "";
@@ -74,11 +88,17 @@
       return badges;
     }
 
+    /**
+     * Get the user's display color from IRC tags, or use fallback.
+     */
     function getUsernameColor(tags) {
       const colorMatch = tags.match(/color=([^;]*)/);
       return colorMatch && colorMatch[1] ? colorMatch[1] : "#9147ff";
     }
 
+    /**
+     * Replace Twitch emote text in a message with <img> tags using IRC emote tags.
+     */
     function parseTwitchEmotes(tags, message) {
       const emotesMatch = tags.match(/emotes=([^;]*)/);
       let emotes = emotesMatch && emotesMatch[1] ? emotesMatch[1] : "";
@@ -93,6 +113,7 @@
             emoteReplacements.push({ start, end, id: emoteId });
           });
         });
+        // Replace from the end to not mess up indices
         emoteReplacements.sort((a, b) => b.start - a.start);
         emoteReplacements.forEach(({start, end, id}) => {
           const emoteText = parsedMessage.substring(start, end + 1);
@@ -103,6 +124,9 @@
       return parsedMessage;
     }
 
+    /**
+     * Replace 7TV emote names in a message with <img> tags.
+     */
     function parse7TVEmotes(message) {
       if (seventvEmoteRegex) {
         return message.replace(seventvEmoteRegex, (match) => {
@@ -115,6 +139,9 @@
       return message;
     }
 
+    /**
+     * Add a chat message to the overlay, handle message limit and fade-out.
+     */
     function addMessageToChat(badges, nameColor, username, parsedMessage) {
       const chat = document.getElementById('chat');
       const div = document.createElement('div');
@@ -140,6 +167,9 @@
       }
     }
 
+    /**
+     * Parse and handle a single IRC PRIVMSG line.
+     */
     function handleMessage(line) {
       if (!line.includes("PRIVMSG")) return;
       const match = line.match(/@([^ ]+) :([^!]+)!.* PRIVMSG #\w+ :(.*)/);
@@ -148,7 +178,7 @@
       const username = match[2];
       const message = match[3];
 
-      // Skip messages from bots
+      // Skip messages from known bots
       const botList = ["nightbot", "streamelements", "eva_m1a"];
       if (botList.includes(username.toLowerCase())) return;
 
@@ -162,6 +192,9 @@
       addMessageToChat(badges, nameColor, username, parsedMessage);
     }
 
+    /**
+     * Show a visible error message in the chat overlay.
+     */
     function showWebSocketError(message) {
       const chat = document.getElementById('chat');
       let errorDiv = document.getElementById('ws-error');
@@ -180,6 +213,9 @@
       errorDiv.textContent = message;
     }
 
+    /**
+     * Connect to Twitch IRC via WebSocket and handle reconnects and errors.
+     */
     function connectWebSocket() {
       ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
 
@@ -215,7 +251,8 @@
       };
     }
 
-    // Initialize
+    // ---- Initialization ----
+    // Fetch emotes, then connect to chat
     fetch7TVEmotes().then(connectWebSocket);
   </script>
 </body>
