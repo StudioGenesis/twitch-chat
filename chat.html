@@ -28,12 +28,15 @@
       color: #9147ff;
     }
   </style>
+  <script src="config.js"></script>
 </head>
 <body>
   <div id="chat"></div>
   <script>
     // ---- CONFIG ----
-    const channel = "studiogenesisau"; // Your Twitch channel (lowercase)
+    const channel = window.chatConfig.channel;
+    const badgeUrls = window.chatConfig.badgeUrls;
+    const seventvEmoteSetId = window.chatConfig.seventvEmoteSetId;
     // ---- END CONFIG ----
 
     // Anonymous connection (no login required)
@@ -47,8 +50,8 @@
 
     let seventvEmotes = {};
 
-    // Fetch 7TV emotes ONCE at page load using emote set ID
-    fetch('https://api.7tv.app/v3/emote-sets/01H4X8GZFR0004TC809Z51977V')
+    // Fetch 7TV emotes ONCE at page load using emote set ID from config
+    fetch(`https://api.7tv.app/v3/emote-sets/${seventvEmoteSetId}`)
       .then(res => res.json())
       .then(set => {
         if (set.emotes) {
@@ -145,14 +148,6 @@
           }
         }
       });
-    };
-
-    const badgeUrls = {
-      moderator: "badges/moderator.png",
-      broadcaster: "badges/broadcaster.png",
-      vip: "badges/vip.png",
-      // Add more as needed
-      //subscriber: "badges/subscriber.png" // if you add this badge
     };
   </script>
 </body>
