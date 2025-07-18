@@ -80,7 +80,40 @@
             const colorMatch = tags.match(/color=([^;]*)/);
             const nameColor = colorMatch && colorMatch[1] ? colorMatch[1] : "#9147ff"; // fallback color
 
-            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${message}`;
+            // Extract emotes from tags
+            const emotesMatch = tags.match(/emotes=([^;]*)/);
+            let emotes = emotesMatch && emotesMatch[1] ? emotesMatch[1] : "";
+
+            // Replace emote text with images
+            let parsedMessage = message;
+            if (emotes) {
+              // Collect all emote occurrences
+              let emoteReplacements = [];
+              emotes.split('/').forEach(emote => {
+                const [emoteId, positions] = emote.split(':');
+                if (!positions) return;
+                positions.split(',').forEach(pos => {
+                  const [start, end] = pos.split('-').map(Number);
+                  emoteReplacements.push({
+                    start,
+                    end,
+                    id: emoteId
+                  });
+                });
+              });
+
+              // Sort by start position descending to not mess up indices when replacing
+              emoteReplacements.sort((a, b) => b.start - a.start);
+
+              // Replace emote text with image tags
+              emoteReplacements.forEach(({start, end, id}) => {
+                const emoteText = parsedMessage.substring(start, end + 1);
+                const emoteImg = `<img src="https://static-cdn.jtvnw.net/emoticons/v2/${id}/default/dark/1.0" alt="${emoteText}" style="height:1em;vertical-align:middle;">`;
+                parsedMessage = parsedMessage.slice(0, start) + emoteImg + parsedMessage.slice(end + 1);
+              });
+            }
+
+            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${parsedMessage}`;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 
