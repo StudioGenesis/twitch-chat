@@ -115,12 +115,12 @@
 
             let seventvEmotes = {};
 
-            // Fetch 7TV emotes for your channel ONCE at page load
-            fetch('https://7tv.io/v3/users/twitch/01H4AWC7T80004RTBXCJFRTWPS')
+            // Fetch 7TV emotes for your channel ONCE at page load using emote set ID
+            fetch('https://api.7tv.app/v3/emote-sets/01H4X8GZFR0004TC809Z51977V')
               .then(res => res.json())
-              .then(user => {
-                if (user.emote_set && user.emote_set.emotes) {
-                  user.emote_set.emotes.forEach(e => {
+              .then(set => {
+                if (set.emotes) {
+                  set.emotes.forEach(e => {
                     seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
                   });
                 }
@@ -128,7 +128,6 @@
 
             // Replace 7TV emotes (simple word match, not perfect for all edge cases)
             Object.keys(seventvEmotes).forEach(emoteName => {
-              // Use word boundaries to avoid partial matches
               parsedMessage = parsedMessage.replace(
                 new RegExp(`\\b${emoteName}\\b`, 'g'),
                 `<img src="${seventvEmotes[emoteName]}" alt="${emoteName}" style="height:1em;vertical-align:middle;">`
