@@ -3,7 +3,7 @@
 A lightweight, customizable Twitch chat overlay for OBS or browser sources.  
 Supports Twitch emotes, 7TV emotes, badges, message fading, and automatic reconnect.
 
-For a working example you can type in my [Twitch chat]("https://www.twitch.tv/studiogenesisau"), while having my personal [overlay page]("https://studiogenesis.github.io/twitch-chat-overlay/chat.html") open in another tab/window.
+For a working example you can type in my [Twitch chat](https://www.twitch.tv/studiogenesisau), while having my personal [overlay page](https://studiogenesis.github.io/twitch-chat-overlay/chat.html) open in another tab/window.
 
 ---
 
