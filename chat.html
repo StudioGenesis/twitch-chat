@@ -67,8 +67,19 @@
             const badgeMatch = tags.match(/badges=([^;]*)/);
             let badges = "";
             if (badgeMatch && badgeMatch[1]) {
-              if (badgeMatch[1].includes("moderator")) badges += "🛡️ ";
-              if (badgeMatch[1].includes("subscriber")) badges += "⭐ ";
+              const badgeList = badgeMatch[1].split(",");
+              badgeList.forEach(badge => {
+                const [type, version] = badge.split("/");
+                if (type === "moderator") {
+                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/96c6c2fa-1b7a-4b4a-bb7a-1a6e2b2aad16/1" alt="mod" style="height:1em;vertical-align:middle;"> `;
+                }
+                if (type === "broadcaster") {
+                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/4d6e9f2d-70a5-4c6e-8c7e-6a2a7c8e6c6f/1" alt="broadcaster" style="height:1em;vertical-align:middle;"> `;
+                }
+                if (type === "subscriber") {
+                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/0c865d8c-6c0d-4c8e-8c8e-8c8e8c8e8c8e/1" alt="sub" style="height:1em;vertical-align:middle;"> `;
+                }
+              });
             }
 
             // Extract username color from tags
