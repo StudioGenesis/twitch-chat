@@ -45,6 +45,19 @@
       ws.send("JOIN #" + channel);
     };
 
+    let seventvEmotes = {};
+
+    // Fetch 7TV emotes ONCE at page load using emote set ID
+    fetch('https://api.7tv.app/v3/emote-sets/01H4X8GZFR0004TC809Z51977V')
+      .then(res => res.json())
+      .then(set => {
+        if (set.emotes) {
+          set.emotes.forEach(e => {
+            seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
+          });
+        }
+      });
+
     ws.onmessage = function(event) {
       const chat = document.getElementById('chat');
       const lines = event.data.split('\r\n');
@@ -112,19 +125,6 @@
                 parsedMessage = parsedMessage.slice(0, start) + emoteImg + parsedMessage.slice(end + 1);
               });
             }
-
-            let seventvEmotes = {};
-
-            // Fetch 7TV emotes for your channel ONCE at page load using emote set ID
-            fetch('https://api.7tv.app/v3/emote-sets/01H4X8GZFR0004TC809Z51977V')
-              .then(res => res.json())
-              .then(set => {
-                if (set.emotes) {
-                  set.emotes.forEach(e => {
-                    seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
-                  });
-                }
-              });
 
             // Replace 7TV emotes (simple word match, not perfect for all edge cases)
             Object.keys(seventvEmotes).forEach(emoteName => {
