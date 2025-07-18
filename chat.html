@@ -129,7 +129,7 @@
               });
             }
 
-            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${parsedMessage}`;
+            div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${escapeHTML(username)}:</span> ${parsedMessage}`;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 
@@ -152,6 +152,18 @@
         }
       });
     };
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m];
+      });
+    }
   </script>
 </body>
 </html>
