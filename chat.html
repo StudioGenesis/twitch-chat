@@ -13,7 +13,13 @@
     const channel = window.chatConfig.channel;
     const badgeUrls = window.chatConfig.badgeUrls;
     const seventvEmoteSetId = window.chatConfig.seventvEmoteSetId;
+    const messageLimit = window.chatConfig.messageLimit || 30;
+    const fontSize = window.chatConfig.fontSize || "1.2em";
+    const fadeTime = window.chatConfig.fadeTime || 0;
     // ---- END CONFIG ----
+
+    // Set font size on chat container
+    document.getElementById('chat').style.fontSize = fontSize;
 
     // Anonymous connection (no login required)
     const ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
@@ -127,9 +133,20 @@
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 
-            // Limit to last 30 messages
-            while (chat.children.length > 30) {
+            // Limit to last N messages
+            while (chat.children.length > messageLimit) {
               chat.removeChild(chat.firstChild);
+            }
+
+            // (Optional) Fade out messages after fadeTime ms
+            if (fadeTime > 0) {
+              setTimeout(() => {
+                div.style.transition = "opacity 0.5s";
+                div.style.opacity = 0;
+                setTimeout(() => {
+                  if (div.parentNode) div.parentNode.removeChild(div);
+                }, 500);
+              }, fadeTime);
             }
           }
         }

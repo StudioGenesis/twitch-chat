@@ -4,8 +4,9 @@ window.chatConfig = {
   badgeUrls: {
     moderator: "badges/moderator.png",
     broadcaster: "badges/broadcaster.png",
-    vip: "badges/vip.png",
-    // Add more as needed
-    //subscriber: "badges/subscriber.png"
-  }
+    vip: "badges/vip.png"
+  },
+  messageLimit: 30,         // Max messages shown in overlay
+  fontSize: "1.2em",        // Chat font size
+  fadeTime: 0               // (Optional) Time in ms to fade out messages, 0 = no fade
 };
