@@ -113,6 +113,35 @@
               });
             }
 
+            let seventvEmotes = {};
+
+            fetch(`https://7tv.io/v3/emote-sets`)
+              .then(res => res.json())
+              .then(data => {
+                // Find the emote set for your channel
+                // For global emotes, use: https://7tv.io/v3/emote-sets/global
+                // For channel emotes, you need the channel's 7TV emote set ID.
+                // Example for studiogenesisau (replace with your set ID if needed):
+                fetch('https://7tv.io/v3/users/twitch/studiogenesisau')
+                  .then(res => res.json())
+                  .then(user => {
+                    if (user.emote_set && user.emote_set.emotes) {
+                      user.emote_set.emotes.forEach(e => {
+                        seventvEmotes[e.name] = `https://cdn.7tv.app/emote/${e.id}/1x.webp`;
+                      });
+                    }
+                  });
+              });
+
+            // Replace 7TV emotes (simple word match, not perfect for all edge cases)
+            Object.keys(seventvEmotes).forEach(emoteName => {
+              // Use word boundaries to avoid partial matches
+              parsedMessage = parsedMessage.replace(
+                new RegExp(`\\b${emoteName}\\b`, 'g'),
+                `<img src="${seventvEmotes[emoteName]}" alt="${emoteName}" style="height:1em;vertical-align:middle;">`
+              );
+            });
+
             div.innerHTML = `${badges}<span class="username" style="color:${nameColor}">${username}:</span> ${parsedMessage}`;
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
