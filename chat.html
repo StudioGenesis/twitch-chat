@@ -70,14 +70,27 @@
               const badgeList = badgeMatch[1].split(",");
               badgeList.forEach(badge => {
                 const [type, version] = badge.split("/");
-                if (type === "moderator") {
-                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/96c6c2fa-1b7a-4b4a-bb7a-1a6e2b2aad16/1" alt="mod" style="height:1em;vertical-align:middle;"> `;
+                let badgeUrl = null;
+
+                // Check for channel-specific badges first
+                if (
+                  channelBadges.channel &&
+                  channelBadges.channel[type] &&
+                  channelBadges.channel[type].versions[version]
+                ) {
+                  badgeUrl = channelBadges.channel[type].versions[version].image_url_1x;
                 }
-                if (type === "broadcaster") {
-                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/4d6e9f2d-70a5-4c6e-8c7e-6a2a7c8e6c6f/1" alt="broadcaster" style="height:1em;vertical-align:middle;"> `;
+                // Fallback to global badges
+                else if (
+                  channelBadges.global &&
+                  channelBadges.global[type] &&
+                  channelBadges.global[type].versions[version]
+                ) {
+                  badgeUrl = channelBadges.global[type].versions[version].image_url_1x;
                 }
-                if (type === "subscriber") {
-                  badges += `<img src="https://static-cdn.jtvnw.net/badges/v1/0c865d8c-6c0d-4c8e-8c8e-8c8e8c8e8c8e/1" alt="sub" style="height:1em;vertical-align:middle;"> `;
+
+                if (badgeUrl) {
+                  badges += `<img src="${badgeUrl}" alt="${type}" style="height:1em;vertical-align:middle;"> `;
                 }
               });
             }
@@ -98,6 +111,24 @@
         }
       });
     };
+
+    let channelBadges = {};
+    // Replace with your channel's user ID (not name)
+    const channelId = "41196682"; // <-- You must set this!
+
+    // Fetch global badges
+    fetch("https://badges.twitch.tv/v1/badges/global/display")
+      .then(r => r.json())
+      .then(data => {
+        channelBadges.global = data.badge_sets;
+      });
+
+    // Fetch channel badges (subscriber, bits, etc.)
+    fetch(`https://badges.twitch.tv/v1/badges/channels/${channelId}/display`)
+      .then(r => r.json())
+      .then(data => {
+        channelBadges.channel = data.badge_sets;
+      });
   </script>
 </body>
 </html>
