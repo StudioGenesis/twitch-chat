@@ -69,28 +69,9 @@
             if (badgeMatch && badgeMatch[1]) {
               const badgeList = badgeMatch[1].split(",");
               badgeList.forEach(badge => {
-                const [type, version] = badge.split("/");
-                let badgeUrl = null;
-
-                // Check for channel-specific badges first
-                if (
-                  channelBadges.channel &&
-                  channelBadges.channel[type] &&
-                  channelBadges.channel[type].versions[version]
-                ) {
-                  badgeUrl = channelBadges.channel[type].versions[version].image_url_1x;
-                }
-                // Fallback to global badges
-                else if (
-                  channelBadges.global &&
-                  channelBadges.global[type] &&
-                  channelBadges.global[type].versions[version]
-                ) {
-                  badgeUrl = channelBadges.global[type].versions[version].image_url_1x;
-                }
-
-                if (badgeUrl) {
-                  badges += `<img src="${badgeUrl}" alt="${type}" style="height:1em;vertical-align:middle;"> `;
+                const [type] = badge.split("/");
+                if (badgeUrls[type]) {
+                  badges += `<img src="${badgeUrls[type]}" alt="${type}" style="height:1em;vertical-align:middle;"> `;
                 }
               });
             }
@@ -129,6 +110,14 @@
       .then(data => {
         channelBadges.channel = data.badge_sets;
       });
+
+    const badgeUrls = {
+      moderator: "https://static-cdn.jtvnw.net/badges/v1/96c6c2fa-1b7a-4b4a-bb7a-1a6e2b2aad16/1",
+      broadcaster: "https://static-cdn.jtvnw.net/badges/v1/4d6e9f2d-70a5-4c6e-8c7e-6a2a7c8e6c6f/1",
+      vip: "https://static-cdn.jtvnw.net/badges/v1/48e5376e-7d6c-4a06-9c25-3c8c7b9c3e1b/1",
+      // Add more as needed
+      subscriber: "https://static-cdn.jtvnw.net/badges/v1/0c865d8c-6c0d-4c8e-8c8e-8c8e8c8e8c8e/1" // fallback
+    };
   </script>
 </body>
 </html>
